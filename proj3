@@ -1,0 +1,21 @@
+# proj3.py
+# Student name: Will Rodriguez
+# Date: Thu Apr 10
+
+# A Python program for running the game Go Fish!
+
+from gofish import GoFish
+
+def main():
+    print("Time to play Go Fish!")
+    ans = input("Enter F to play with full deck, S to play with short deck: ")
+    game = GoFish(decksize=ans)
+    game.scoreAllMatches()
+    while game.keepPlaying():
+        game.completeTurnFor(1)
+        if game.keepPlaying():
+            input("\nHit ENTER when you're ready for computer to take a turn...")
+            game.completeTurnFor(2)
+    game.gameOver()
+
+main()
