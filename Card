@@ -1,0 +1,81 @@
+#card.py
+# Will Rodriguez, 3-27-25
+# Data model for a single playing card -- provided code file for
+# CS 220 Project 3
+
+class Card:
+    def __init__(self, rank='2', suit='clubs'):
+        '''
+        rank is a string of length one, or rank is '10', or rank is
+        an integer.
+        If rank is an integer, it's converted to a string of one or two
+        digits.
+        rank can also be a single uppercase letter: 'A', 'K', 'Q', or 'J'.
+        suit is a string, one of 'clubs', 'diamonds', 'hearts', 'spades'
+        The default card is the 2 of clubs.
+        '''
+        rank = str(rank)
+        if rank.upper() in 'A 2 3 4 5 6 7 8 9 10 J Q K'.split():
+            self.rank = rank.upper()
+        else:
+            print(rank, "is not a valid rank; changed rank to 2")
+            self.rank = '2'
+        if suit.lower() in ['clubs', 'diamonds', 'hearts', 'spades']:
+            self.suit = suit.lower()
+        else:
+            print(suit, "is not a valid suit; changed suit to clubs")
+            self.suit = 'clubs'
+
+    def __str__(self):
+        '''Returns a string representation of the card.'''
+        return f'{self.rank} of {self.suit}'
+    
+    def __lt__(self, other):
+        '''Implements the less-than comparison operator, <, for
+        comparing two cards. If self and other have different
+        ranks, returns True when the self.rank comes before other.rank
+        in the sequence 'A 2 3 4 ... 10 J Q K' and otherwise returns False.
+        If self and other have equal ranks, returns True when the self.suit
+        comes before other.suit in the sequence 'clubs diamonds hearts spades',
+        otherwise returns False.
+        '''
+        ranks = 'A 2 3 4 5 6 7 8 9 10 J Q K'.split()
+        suits = 'clubs diamonds hearts spades'.split()
+        if self.rank == other.rank:
+            index1 = suits.index(self.suit)
+            index2 = suits.index(other.suit)
+        else:
+            index1 = ranks.index(self.rank)
+            index2 = ranks.index(other.rank)
+        return index1 < index2
+    
+    def __eq__(self, other):
+        '''
+        Equality comparison for two cards. Returns True if self
+        and other have the same rank and the same suit, otherwise False.
+        '''
+        if self.rank != other.rank:
+            return False
+        return self.suit == other.suit
+    
+if __name__ == "__main__":
+    # make some Cards
+    ace_clubs = Card('A', 'clubs')
+    ace_clubs_2 = Card('A', 'clubs')
+    five_diamonds = Card('5', 'diamonds')
+    five_hearts = Card('5', 'hearts')
+    
+    # make some comparisons
+    print("\nTesting the < and > operators...")
+    assert not ace_clubs < ace_clubs, "a card is not less than itself"
+    assert ace_clubs < five_diamonds, "an ace is less than a five"
+    assert not ace_clubs > five_diamonds, "an ace is not more than a five"
+    assert five_diamonds < five_hearts, "diamonds comes before hearts"
+    assert not five_diamonds > five_hearts,"diamonds doesn't come after hearts"
+    print("    All good!")
+    
+    print("\nTesting the == operator...")
+    assert ace_clubs == ace_clubs_2, "two card objects for same card are equal"
+    msg = "two card objects for different cards are unequal"
+    assert ace_clubs != five_diamonds, msg
+    print("    All good!")
