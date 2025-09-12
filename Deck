@@ -1,0 +1,170 @@
+# deck.py
+# Student name: Will Rodriguez
+# Date: 2025-03-31
+
+# Data model for a group of cards.
+# The only instance variable of the Deck class is cards, a list
+# of zero or more Card objects. The class methods support playing
+# the classic card game Go Fish.
+
+import random
+import card
+
+class Deck:
+    def __init__(self, cardlist):
+        '''
+        Takes a list of Card objects, cardlist, and initializes
+        a deck to hold those cards. If cardlist is 'full', initializes
+        a full deck of 52 playing cards (shuffled). If 'short', the deck
+        has only A, 10, J, Q, K ranks. If 'empty', initializes an empty deck.
+        '''
+        if cardlist not in ['full', 'empty', 'short']:
+            self.cards = cardlist
+        elif cardlist == 'empty':
+            self.cards = []
+        else:
+            ranks = 'A 10 J Q K'.split() if cardlist == 'short' else \
+                    'A 2 3 4 5 6 7 8 9 10 J Q K'.split()
+            suits = 'clubs diamonds hearts spades'.split()
+            self.cards = [card.Card(r, s) for r in ranks for s in suits]
+            random.shuffle(self.cards)
+
+    def size(self):
+        '''Returns the number of cards currently in the deck.'''
+        return len(self.cards)
+
+    def printDeck(self, sort=True):
+        '''
+        Prints each card of the deck. If sort is True, prints in rank order
+        without modifying self.cards; otherwise, prints in deck order.
+        '''
+        sorted_cards = sorted(self.cards) if sort else self.cards
+        for c in sorted_cards:
+            print(c)
+
+    def takeCard(self):
+        '''Removes and returns a card from the deck, or None if empty.'''
+        return self.cards.pop() if self.cards else None
+
+    def deal(self, n):
+        '''Removes n cards from the deck and returns them as a new Deck.'''
+        if n > self.size():
+            return None
+        dealt_cards = [self.takeCard() for _ in range(n)]
+        return Deck(dealt_cards)
+
+    def ranksList(self):
+        '''Returns a list of unique ranks present in the deck.'''
+        return list(set(card.rank for card in self.cards))
+
+    def randomRank(self):
+        '''Returns a random rank from the deck.'''
+        return random.choice(self.ranksList()) if self.cards else None
+
+    def addFromList(self, cards_list):
+        '''Adds a list of Card objects to the deck.'''
+        self.cards.extend(cards_list)
+
+    def removeCardsOfRank(self, a_rank):
+        '''
+        Removes all cards of a given rank from the deck and returns them.
+        If no cards of that rank exist, returns an empty list.
+        '''
+        removed_cards = [c for c in self.cards if c.rank == a_rank]
+        self.cards = [c for c in self.cards if c.rank != a_rank]
+        return removed_cards
+
+    def moveCardsOfRank(self, other, a_rank):
+        '''
+        Removes all cards of a given rank and adds them to another deck.
+        Returns the number of cards moved.
+        '''
+        moved_cards = self.removeCardsOfRank(a_rank)
+        other.addFromList(moved_cards)
+        return len(moved_cards)
+
+    def addCardFrom(self, other):
+        '''Takes a card from another deck and adds it to this deck.'''
+        card = other.takeCard()
+        if card:
+            self.cards.append(card)
+            return card.rank
+        return None
+
+    def checkForMatch(self, card_rank):
+        '''Checks if there are four cards of a given rank in the deck.'''
+        return sum(1 for c in self.cards if c.rank == card_rank) == 4
+
+
+if __name__ == "__main__":
+    print("Testing __init__, size, printDeck, takeCard")
+
+    # Create a small deck from specific cards
+    c1 = card.Card('5', 'spades')
+    c2 = card.Card('7', 'hearts')
+    c3 = card.Card('K', 'hearts')
+    c4 = card.Card('A', 'diamonds')
+    L = [c1, c2, c3, c4]
+    smalldeck = Deck(L)
+    assert smalldeck.size() == 4, "Deck initialized correctly"
+    print("\nCards in smalldeck:")
+    smalldeck.printDeck()
+    print()
+
+    c = smalldeck.takeCard()
+    print(c, "is taken from smalldeck")
+    print("Remaining cards in smalldeck:")
+    smalldeck.printDeck()
+    assert smalldeck.size() == 3, "takeCard reduces deck size by 1"
+    assert Deck('empty').size() == 0, "Empty deck created correctly"
+
+    print("\nTesting short deck:")
+    short_deck = Deck('short')
+    assert short_deck.size() == 20, "Short deck has 20 cards"
+    short_deck.printDeck()
+
+    print("\nTesting deal...")
+    full = Deck('full')
+    assert full.size() == 52, "Full deck has 52 cards"
+    hand = full.deal(7)
+    assert hand.size() == 7, "Dealt hand has 7 cards"
+    assert full.size() == 45, "Deck reduced after dealing"
+    
+    print("\nTesting ranksList and randomRank...")
+    myhand = Deck([c1, c2, c3, c4, card.Card('K', 'clubs'), card.Card('5', 'diamonds')])
+    assert sorted(myhand.ranksList()) == ['5', '7', 'A', 'K'], "ranksList is correct"
+    for _ in range(30):
+        assert myhand.randomRank() in myhand.ranksList(), "randomRank picks correctly"
+
+    print("\nTesting addFromList...")
+    hand.addFromList([card.Card('Q', 'diamonds'), card.Card('10', 'spades')])
+    assert hand.size() == 9, "addFromList adds correctly"
+
+    print("\nTesting removeCardsOfRank and moveCardsOfRank...")
+    full = Deck('full')
+    small = Deck([card.Card('5', 'clubs')])
+    removed = full.removeCardsOfRank('K')
+    assert len(removed) == 4, "Four Kings removed"
+    assert 'K' not in full.ranksList(), "Kings removed successfully"
+    
+    full.moveCardsOfRank(small, 'A')
+    assert small.size() == 5, 'Four aces moved'
+    assert full.size() == 44, 'Deck reduced correctly'
+
+    print("\nTesting addCardFrom...")
+    full = Deck('full')
+    small = Deck([card.Card('5', 'clubs')])
+    card_rank = small.addCardFrom(full)
+    assert full.size() == 51, "One card removed from full deck"
+    assert small.size() == 2, "One card added to small deck"
+    print(f"Added card of rank '{card_rank}' to small deck.")
+
+    print("\nTesting checkForMatch...")
+    myhand = Deck([card.Card('K', 'spades'), card.Card('K', 'diamonds'),
+                   card.Card('K', 'hearts'), card.Card('A', 'diamonds'),
+                   card.Card('K', 'clubs')])
+    assert myhand.checkForMatch('K') is True, "Four of a kind detected"
+    assert myhand.checkForMatch('A') is False, "False when no four-match"
+    
+    print("\nAll tests passed!")
+
