@@ -1,0 +1,270 @@
+from deck import Deck
+from card import Card
+
+RANKS = {'A': 'ace', '2': 'two', '3': 'three', '4': 'four', '5': 'five',
+         '6': 'six', '7': 'seven', '8': 'eight', '9': 'nine', '10': 'ten',
+         'J': 'jack', 'Q': 'queen', 'K': 'king'}
+
+class GoFish:
+    def __init__(self, decksize):
+        '''
+        Initializes the game data for a game of Go Fish.
+        decksize is a string: 'F' for full 52-card deck, 'S' for short 20-card deck.
+        '''
+        self.score = {1: 0, 2: 0}  
+        self.deck = Deck('full') if decksize == 'F' else Deck('short')
+        self.discard = Deck('empty')
+        self.hand = {1: self.deck.deal(7), 2: self.deck.deal(7)}
+
+    def getPlayerChoice(self):
+        '''Prints self.hand[1] and prompts human to choose a rank.'''
+        input("\nHit ENTER to take a turn... ")
+        print("\nHere's your hand:")
+        self.hand[1].printDeck()
+        user_ranks = self.hand[1].ranksList()
+        while True:
+            answer = input("Which rank do you want to ask for? ")
+            if answer in user_ranks:
+                return answer
+            print("Invalid choice. Please choose a rank from your hand.")
+
+    def askForRank(self, playerNum):
+        '''
+        Asks the other player for a specific rank, transfers cards if found.
+        '''
+        choice = self.getPlayerChoice() if playerNum == 1 else self.hand[2].randomRank()
+
+        if playerNum == 1:
+            print(f"You ask: 'Do you have any {self.rankExpression(choice, 2)}?'")
+        else:
+            print(f"Computer asks: 'Do you have any {self.rankExpression(choice, 2)}?'")
+
+        other_player = 2 if playerNum == 1 else 1
+        num_found = self.hand[other_player].moveCardsOfRank(self.hand[playerNum], choice)
+        return (num_found, choice)
+
+    def printScore(self):
+        '''Prints current scores.'''
+        print(f"\nScore - You: {self.score[1]}, Computer: {self.score[2]}")
+
+    def scoreMatch(self, playerNum, card_rank):
+        '''
+        Updates score and removes matched set of cards.
+        '''
+        self.hand[playerNum].removeCardsOfRank(card_rank)
+        self.score[playerNum] += 1
+        print(f"Player {playerNum} completed a set of {card_rank}s!")
+
+    def scoreAllMatches(self):
+        '''Checks both players' hands for any initial matches.'''
+        for player in [1, 2]:
+            for rank in self.hand[player].ranksList():
+                if self.hand[player].checkForMatch(rank):
+                    self.scoreMatch(player, rank)
+
+    def keepPlaying(self):
+        '''Returns True if game should continue.'''
+        return self.deck.size() > 0 and all(self.hand[i].size() > 0 for i in [1, 2])
+
+    def reportOutOfCards(self):
+        '''Prints status if deck or hands are empty.'''
+        if self.deck.size() == 0:
+            print("Deck is empty.")
+        if self.hand[1].size() == 0:
+            print("You have no more cards.")
+        if self.hand[2].size() == 0:
+            print("Computer has no more cards.")
+
+    def determineWinner(self):
+        '''Returns winner string: "human", "computer", or "tie".'''
+        if self.score[1] > self.score[2]:
+            return "human"
+        elif self.score[1] < self.score[2]:
+            return "computer"
+        return "tie"
+    
+    def gameOver(self):
+        '''Prints an appropriate end-of-game message.'''
+        print("\nGAME OVER!")
+        self.reportOutOfCards()
+        self.printScore()
+        winner = self.determineWinner()
+        if winner == "human":
+            print("You win!")
+        elif winner == "tie":
+            print("Tie game!")
+        else:
+            print("You lose, better luck next time!")
+
+    def sorryGoFish(self, playerNum, choice):
+        '''Handles "Go Fish" draw logic.'''
+        print("Sorry, go fish!")
+        if playerNum == 1:
+            input("\nHit ENTER to draw a card...")
+        addedRank = self.hand[playerNum].addCardFrom(self.deck)
+        print(f"Player {playerNum} drew a card of rank {addedRank}")
+        if addedRank == choice and self.hand[playerNum].checkForMatch(choice):
+            self.scoreMatch(playerNum, choice)
+        return addedRank
+
+    def completeTurnFor(self, playerNum):
+        '''
+        A player can keep playing until they miss or take 3 turns.
+        '''
+        turns = 0
+        while turns < 3 and self.keepPlaying():
+            success = self.playerTurn() if playerNum == 1 else self.computerTurn()
+            if not success:
+                break
+            turns += 1
+
+    def playerTurn(self):
+        '''Handles one turn for the human player.'''
+        num_found, choice = self.askForRank(1)
+        if num_found == 0:
+            return self.sorryGoFish(1, choice) == choice
+        print(f"You got {num_found} {self.rankExpression(choice, num_found)}")
+        if self.hand[1].checkForMatch(choice):
+            self.scoreMatch(1, choice)
+        return True
+
+    def computerTurn(self):
+        '''Handles one turn for the computer player.'''
+        num_found, choice = self.askForRank(2)
+        if num_found == 0:
+            return self.sorryGoFish(2, choice) == choice
+        print(f"Computer got {num_found} {self.rankExpression(choice, num_found)}")
+        if self.hand[2].checkForMatch(choice):
+            self.scoreMatch(2, choice)
+        return True
+
+    def rankExpression(self, choice, num_found):
+        '''
+        Returns correct plural form for card rank.
+        '''
+        R = RANKS[choice]
+        return "sixes" if choice == '6' else R + "s" if num_found > 1 else R
+# Paste this testing code at the very END of gofish.py
+
+if __name__ == "__main__":
+    print("Testing __init__...")
+    game_full = GoFish('F')
+    game_short = GoFish('S')
+    # GoFish has a score variable
+    assert game_full.score[1] == 0, "player 1 starts with score 0 (full)"
+    assert game_full.score[2] == 0, "player 2 starts with score 0 (full)"
+    assert game_short.score[1] == 0, "player 1 starts with score 0 (short)"
+    assert game_short.score[2] == 0, "player 2 starts with score 0 (short)"
+    # GoFish has a deck, full or short
+    # 14 cards have been dealt, so full deck has 38 and short deck has 6
+    assert game_full.deck.size() == 52-14, "deck can be size 38 (full)"
+    assert game_short.deck.size() == 20-14, "deck can be size 6 (short)"
+    # GoFish has a discard pile, an empty deck
+    assert game_full.discard.size() == 0, "discard is an empty deck to start"
+    game_short.discard.printDeck()
+    #GoFish has a pair of hands, each with 7 cards, stored in a dictionary
+    assert game_full.hand[1].size() == 7, "player 1 starts with 7 cards"
+    assert game_full.hand[2].size() == 7, "player 2 starts with 7 cards"
+    
+    #=======================================================
+    # Notice that getPlayerChoice requires user input so we can't test
+    # it with an assert. We should test it "interactively" by typing
+    # codes into the shell.
+    # >>> game = GoFish('F')
+    # >>> game.getPlayerChoice()
+    # Try asking for a rank that's not in the player's hand...
+    
+    #=======================================================
+    # Notice that askForRank requires user input when playerNum is 1,
+    # so we can't test it with an assert.
+    # Use the shell again:
+    # >>> game = GoFish('F')
+    # >>> game.askForRank(1)  # will query the player for a rank
+    # We'll scope this out during class...
+    
+    #========================================================
+    print("\nTesting askForRank(2)")
+    # No user input needed, so we can test this one with asserts
+    # Scenario 1: The computer asks for a rank that's in both hands
+    game = GoFish('F')
+    c1 = Card('A', 'clubs')
+    c2 = Card('K', 'clubs')
+    c3 = Card('A', 'diamonds')
+    c4 = Card('A', 'spades')
+    game.hand[1] = Deck([c1, c2])
+    game.hand[2] = Deck([c3, c4])
+    # computer only has aces, so it will ask for 'A' automatically
+    num_cards_moved, choice_of_rank = game.askForRank(2)
+    assert choice_of_rank == 'A', 'computer chooses the only rank available'
+    assert num_cards_moved == 1, '1 card is moved from player 1 to player 2'
+    assert game.hand[1].cards == [c2], 'player 1 now has just c2'
+    assert game.hand[2].size() == 3, 'player 2 now has 3 cards'
+    assert c1 in game.hand[2].cards, 'player 2 now has c1'
+    
+    # Scenario 2: The computer asks for a rank in hand[2] but there
+    # are none of those in hand[1]
+    game = GoFish('F')
+    c1 = Card('J', 'clubs')
+    c2 = Card('K', 'clubs')
+    c3 = Card('A', 'diamonds')
+    c4 = Card('A', 'spades')
+    game.hand[1] = Deck([c1, c2])
+    game.hand[2] = Deck([c3, c4])
+    # computer only has aces, so it will ask for 'A' automatically
+    num_cards_moved, choice_of_rank = game.askForRank(2)
+    assert choice_of_rank == 'A', 'computer chooses the only rank available'
+    assert num_cards_moved == 0, 'none moved from player 1 to player 2'
+    assert game.hand[1].cards == [c1, c2], 'player 1 hand unchanged'
+    assert game.hand[2].cards == [c3, c4], 'player 2 hand unchanged'
+    
+    #========================================================
+    print("\nCalling printScore...")
+    GoFish('F').printScore()
+    
+    #========================================================
+    print("\nTesting scoreMatch...")
+    ks = Card('K', 'spades')
+    kh = Card('K', 'hearts')
+    kd = Card('K', 'diamonds')
+    kc = Card('K', 'clubs')
+    js = Card('J', 'spades')
+    game = GoFish('F')
+    game.hand[1] = Deck([ks, kh, kd, kc, js])
+    game.scoreMatch(1, 'K')
+    assert game.hand[1].cards == [js], 'player 1 has no kings, 1 jack'
+    assert game.score[1] == 1, 'player 1 score has increased by 1'
+    game.hand[2] = Deck([ks, kh, kd, kc, js])
+    game.scoreMatch(2, 'K')
+    assert game.hand[2].cards == [js], 'player 2 has no kings, 1 jack'
+    assert game.score[2] == 1, 'player 2 score has increased by 1'
+    
+    #========================================================
+    print("\nTesting keepPlaying and reportOutOfCards...")
+    game = GoFish('F')
+    game.hand[1] = Deck('empty')
+    assert game.keepPlaying() == False, "Stop playing if hand[1] is empty"
+    game.reportOutOfCards()  # should print a message, human player hand is empty
+    game = GoFish('F')
+    game.hand[2] = Deck('empty')
+    assert game.keepPlaying() == False, "Stop playing if hand[2] is empty"
+    game.reportOutOfCards()  # should print a message, computer hand is empty
+    game = GoFish('F')
+    game.deck = Deck('empty')
+    assert game.keepPlaying() == False, "Stop playing if deck is empty"
+    game.reportOutOfCards()  # should print a message, deck is empty
+    game = GoFish('F')
+    assert game.keepPlaying() == True, "Keep playing if hands and deck are nonempty"
+    game.reportOutOfCards()  # should print a warning
+    
+    #========================================================
+    print("\nTesting determineWinner...")
+    game.score[1], game.score[2] = 5, 1  
+    assert game.determineWinner() == "human", "human wins in this case"
+    game.score[1], game.score[2] = 1, 5  
+    assert game.determineWinner() == "computer", "computer wins in this case"
+    game.score[1], game.score[2] = 3, 3  
+    assert game.determineWinner() == "tie", "tie in this case"
+    
+    print("\nLooking good so far!")
+    print("\nTest remaining methods by implementing proj3.py and play-testing it.")
+    print("KEEP A CLOSE EYE ON THE SAMPLE OUTPUT PROVIDED!")
