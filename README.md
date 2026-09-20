@@ -1,8 +1,8 @@
-🎣 Go Fish – Python Game
+Go Fish Python Game
 
 A simple command-line implementation of the classic card game Go Fish, built with Python.
 
-📌 Features
+Features
 
 Play Go Fish against a computer opponent.
 
@@ -14,13 +14,13 @@ Turn-based gameplay loop.
 
 Win/Loss detection when all books are completed.
 
-🛠️ Requirements
+Requirements
 
 Python 3.8 or higher
 
 (No external libraries required unless you’ve added extras like color/text formatting.)
 
-▶️ How to Play
+How to Play
 
 Clone or download this repository.
 
